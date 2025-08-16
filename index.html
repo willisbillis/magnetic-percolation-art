@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnet Percolation Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem 1rem;
+        }
+
+        #container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            max-width: 90%;
+            width: 100%;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            width: 100%;
+        }
+        
+        @media (min-width: 768px) {
+            .simulation-area {
+                flex-direction: row;
+                justify-content: center;
+                align-items: flex-start;
+            }
+        }
+
+        #canvas {
+            border: 2px solid #28527a;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            background-color: #0d0d18;
+        }
+
+        #graphCanvas {
+            border: 2px solid #28527a;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            background-color: #0d0d18;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #28527a;
+            outline: none;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #a9a9a9;
+            border: 2px solid #e0e0e0;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #e0e0e0;
+            transform: scale(1.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #toggleButton {
+            background-color: #3f51b5;
+            color: white;
+        }
+
+        #toggleButton:hover {
+            background-color: #536dfe;
+            transform: translateY(-2px);
+        }
+
+        #toggleButton:active {
+            transform: translateY(0);
+        }
+
+        #resetButton {
+            background-color: #f59e0b;
+            color: #1a202c;
+        }
+
+        #resetButton:hover {
+            background-color: #fbbf24;
+            transform: translateY(-2px);
+        }
+        #resetButton:active {
+            transform: translateY(0);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex flex-col items-center justify-center p-8">
+
+    <div id="container" class="flex flex-col items-center gap-6 p-4 rounded-xl">
+        <h1 class="text-3xl sm:text-4xl font-bold mb-4 text-center text-indigo-400">Magnetic Field Art & Analysis</h1>
+
+        <div class="simulation-area">
+            <canvas id="canvas" class="w-full h-auto max-w-lg aspect-square"></canvas>
+            <canvas id="graphCanvas" class="w-full h-auto max-w-lg aspect-square"></canvas>
+        </div>
+
+        <div class="controls bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md">
+            <div class="control-group">
+                <label for="strength" class="text-sm font-medium text-gray-300">Magnetic Field Strength</label>
+                <input type="range" id="strength" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <div class="control-group">
+                <label for="initialOrientation" class="text-sm font-medium text-gray-300">Initial North Orientation Probability</label>
+                <input type="range" id="initialOrientation" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <div class="control-group">
+                <label for="gridSize" class="text-sm font-medium text-gray-300">Grid Size: <span id="gridSizeValue">50</span>x<span id="gridSizeValue2">50</span></label>
+                <input type="range" id="gridSize" min="10" max="100" step="1" value="50">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="showBars" checked>
+                <label for="showBars" class="text-sm font-medium text-gray-300">Show Magnet Bars</label>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="binarizePlot">
+                <label for="binarizePlot" class="text-sm font-medium text-gray-300">Show Binarized Plot & Colors</label>
+            </div>
+            <button id="toggleButton" class="btn">Pause Simulation</button>
+            <button id="resetButton" class="btn">Reset Simulation</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const graphCanvas = document.getElementById('graphCanvas');
+            const graphCtx = graphCanvas.getContext('2d');
+            const strengthSlider = document.getElementById('strength');
+            const initialOrientationSlider = document.getElementById('initialOrientation');
+            const gridSizeSlider = document.getElementById('gridSize');
+            const gridSizeValueSpan = document.getElementById('gridSizeValue');
+            const gridSizeValue2Span = document.getElementById('gridSizeValue2');
+            const toggleButton = document.getElementById('toggleButton');
+            const resetButton = document.getElementById('resetButton');
+            const showBarsCheckbox = document.getElementById('showBars');
+            const binarizePlotCheckbox = document.getElementById('binarizePlot');
+
+            // --- Configuration ---
+            let GRID_SIZE = 50;
+            const SIMULATION_SPEED = 1;
+            const DAMPING = 0.95;
+            const SMOOTHING = 0.05;
+            const JITTER_RANGE = 45;
+
+            let isRunning = true;
+            let magneticFieldStrength = parseFloat(strengthSlider.value);
+            let initialOrientationProb = parseFloat(initialOrientationSlider.value);
+            let showBars = showBarsCheckbox.checked;
+            let binarizePlot = binarizePlotCheckbox.checked;
+            let magnets = [];
+            let frameId = null;
+            let graphData = {
+                north: [],
+                south: [],
+                diagonal: []
+            };
+
+            // --- Helper Functions ---
+            function toRadians(degrees) {
+                return degrees * Math.PI / 180;
+            }
+
+            function toDegrees(radians) {
+                return radians * 180 / Math.PI;
+            }
+
+            function getMagnetCategory(angle) {
+                const normalizedAngle = (angle % 360 + 360) % 360;
+                if ((normalizedAngle >= 45 && normalizedAngle < 135)) {
+                    return 'north';
+                }
+                if ((normalizedAngle >= 225 && normalizedAngle < 315)) {
+                    return 'south';
+                }
+                return 'diagonal';
+            }
+
+            // --- Simulation Logic ---
+            function initializeGrid() {
+                magnets = [];
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    magnets[i] = [];
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        if (Math.random() < initialOrientationProb) {
+                            const angle = 90 + (Math.random() - 0.5) * JITTER_RANGE;
+                            magnets[i][j] = { angle: angle, angularVelocity: 0 };
+                        } else {
+                            const angle = 270 + (Math.random() - 0.5) * JITTER_RANGE;
+                            magnets[i][j] = { angle: angle, angularVelocity: 0 };
+                        }
+                    }
+                }
+            }
+
+            function calculateNetField(row, col) {
+                let netFieldX = 0;
+                let netFieldY = 0;
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        const nRow = row + dr;
+                        const nCol = col + dc;
+                        if (nRow >= 0 && nRow < GRID_SIZE && nCol >= 0 && nCol < GRID_SIZE) {
+                            const neighbor = magnets[nRow][nCol];
+                            const angleRad = toRadians(neighbor.angle);
+                            const distanceSquared = dr * dr + dc * dc;
+                            if (distanceSquared > 0) {
+                                const fieldMagnitude = magneticFieldStrength / distanceSquared;
+                                netFieldX += fieldMagnitude * Math.cos(angleRad);
+                                netFieldY += fieldMagnitude * Math.sin(angleRad);
+                            }
+                        }
+                    }
+                }
+                return { x: netFieldX, y: netFieldY };
+            }
+
+            function updateSimulation() {
+                const nextMagnets = JSON.parse(JSON.stringify(magnets));
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        const magnet = nextMagnets[i][j];
+                        const netField = calculateNetField(i, j);
+                        let targetAngle = toDegrees(Math.atan2(netField.y, netField.x));
+                        if (targetAngle < 0) {
+                            targetAngle += 360;
+                        }
+                        let diff = targetAngle - magnet.angle;
+                        if (diff > 180) diff -= 360;
+                        if (diff < -180) diff += 360;
+                        magnet.angularVelocity += diff * SMOOTHING;
+                        magnet.angularVelocity *= DAMPING;
+                        magnet.angle += magnet.angularVelocity;
+                        magnet.angle = (magnet.angle + 360) % 360;
+                    }
+                }
+                magnets = nextMagnets;
+            }
+            
+            // --- Connected Components and Graph Logic ---
+            function findConnectedComponents() {
+                const visited = new Array(GRID_SIZE).fill(null).map(() => new Array(GRID_SIZE).fill(false));
+                const componentSizes = { north: [], south: [], diagonal: [] };
+
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        if (!visited[i][j]) {
+                            const category = getMagnetCategory(magnets[i][j].angle);
+                            const queue = [{ row: i, col: j }];
+                            visited[i][j] = true;
+                            let count = 0;
+
+                            while (queue.length > 0) {
+                                const { row, col } = queue.shift();
+                                count++;
+
+                                const neighbors = [{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }];
+                                for (const { dr, dc } of neighbors) {
+                                    const nRow = row + dr;
+                                    const nCol = col + dc;
+                                    if (nRow >= 0 && nRow < GRID_SIZE && nCol >= 0 && nCol < GRID_SIZE && !visited[nRow][nCol]) {
+                                        if (getMagnetCategory(magnets[nRow][nCol].angle) === category) {
+                                            visited[nRow][nCol] = true;
+                                            queue.push({ row: nRow, col: nCol });
+                                        }
+                                    }
+                                }
+                            }
+                            componentSizes[category].push(count);
+                        }
+                    }
+                }
+                return componentSizes;
+            }
+
+            function analyzeAndDrawGraph() {
+                if (binarizePlot) {
+                    const counts = { north: 0, south: 0, diagonal: 0 };
+                    for(let i=0; i<GRID_SIZE; i++) {
+                        for(let j=0; j<GRID_SIZE; j++) {
+                            const category = getMagnetCategory(magnets[i][j].angle);
+                            counts[category]++;
+                        }
+                    }
+                    drawBinarizedGraph(counts);
+                } else {
+                    const componentSizes = findConnectedComponents();
+                    const frequencies = { north: {}, south: {}, diagonal: {} };
+                    for (const category in componentSizes) {
+                        for (const size of componentSizes[category]) {
+                            frequencies[category][size] = (frequencies[category][size] || 0) + 1;
+                        }
+                    }
+                    graphData.north = Object.keys(frequencies.north).map(size => ({
+                        x: Math.log10(parseInt(size)),
+                        y: Math.log10(frequencies.north[size])
+                    }));
+                    graphData.south = Object.keys(frequencies.south).map(size => ({
+                        x: Math.log10(parseInt(size)),
+                        y: Math.log10(frequencies.south[size])
+                    }));
+                    graphData.diagonal = Object.keys(frequencies.diagonal).map(size => ({
+                        x: Math.log10(parseInt(size)),
+                        y: Math.log10(frequencies.diagonal[size])
+                    }));
+                    drawLogLogGraph();
+                }
+            }
+
+            function drawLogLogGraph() {
+                graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+                graphCtx.fillStyle = '#1a1a2e';
+                graphCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
+
+                const margin = 30;
+                const width = graphCanvas.width - 2 * margin;
+                const height = graphCanvas.height - 2 * margin;
+
+                let allX = [0.1];
+                let allY = [0.1];
+                Object.values(graphData).forEach(data => {
+                    data.forEach(point => {
+                        allX.push(point.x);
+                        allY.push(point.y);
+                    });
+                });
+                const maxX = Math.max(...allX);
+                const maxY = Math.max(...allY);
+                const minX = Math.min(...allX);
+                const minY = Math.min(...allY);
+
+                graphCtx.strokeStyle = '#e0e0e0';
+                graphCtx.beginPath();
+                graphCtx.moveTo(margin, margin + height);
+                graphCtx.lineTo(margin + width, margin + height);
+                graphCtx.moveTo(margin, margin);
+                graphCtx.lineTo(margin, margin + height);
+                graphCtx.stroke();
+                
+                graphCtx.fillStyle = '#e0e0e0';
+                graphCtx.font = '12px Inter';
+                graphCtx.textAlign = 'center';
+                graphCtx.fillText('Log(Size)', margin + width / 2, graphCanvas.height - 10);
+                graphCtx.save();
+                graphCtx.translate(10, margin + height / 2);
+                graphCtx.rotate(-Math.PI / 2);
+                graphCtx.fillText('Log(Frequency)', 0, 0);
+                graphCtx.restore();
+                
+                graphCtx.textAlign = 'start';
+                graphCtx.fillStyle = '#ef4444';
+                graphCtx.fillRect(margin + 10, 10, 10, 10);
+                graphCtx.fillStyle = '#e0e0e0';
+                graphCtx.fillText('North', margin + 25, 20);
+
+                graphCtx.fillStyle = '#3b82f6';
+                graphCtx.fillRect(margin + 70, 10, 10, 10);
+                graphCtx.fillStyle = '#e0e0e0';
+                graphCtx.fillText('South', margin + 85, 20);
+
+                graphCtx.fillStyle = '#22c55e';
+                graphCtx.fillRect(margin + 130, 10, 10, 10);
+                graphCtx.fillStyle = '#e0e0e0';
+                graphCtx.fillText('Diagonal', margin + 145, 20);
+
+                function drawLine(data, color) {
+                    if (data.length < 2) return;
+                    graphCtx.strokeStyle = color;
+                    graphCtx.beginPath();
+                    data.sort((a,b) => a.x - b.x);
+                    const startX = margin + (data[0].x - minX) / (maxX - minX) * width;
+                    const startY = margin + height - (data[0].y - minY) / (maxY - minY) * height;
+                    graphCtx.moveTo(startX, startY);
+                    data.forEach(point => {
+                        const x = margin + (point.x - minX) / (maxX - minX) * width;
+                        const y = margin + height - (point.y - minY) / (maxY - minY) * height;
+                        graphCtx.lineTo(x, y);
+                    });
+                    graphCtx.stroke();
+                }
+
+                drawLine(graphData.north, '#ef4444');
+                drawLine(graphData.south, '#3b82f6');
+                drawLine(graphData.diagonal, '#22c55e');
+            }
+            
+            function drawBinarizedGraph(counts) {
+                graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
+                graphCtx.fillStyle = '#1a1a2e';
+                graphCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
+                
+                const margin = 30;
+                const width = graphCanvas.width - 2 * margin;
+                const height = graphCanvas.height - 2 * margin;
+                
+                graphCtx.strokeStyle = '#e0e0e0';
+                graphCtx.beginPath();
+                graphCtx.moveTo(margin, margin + height);
+                graphCtx.lineTo(margin + width, margin + height);
+                graphCtx.stroke();
+                
+                graphCtx.fillStyle = '#e0e0e0';
+                graphCtx.font = '12px Inter';
+                graphCtx.textAlign = 'center';
+                graphCtx.fillText('Magnet Count', margin + width / 2, graphCanvas.height - 10);
+
+                const barWidth = width / 5;
+                const colors = { north: '#ef4444', south: '#3b82f6', diagonal: '#22c55e' };
+                const labels = { north: 'North', south: 'South', diagonal: 'Diagonal' };
+                const categories = ['north', 'south', 'diagonal'];
+                const maxCount = Math.max(counts.north, counts.south, counts.diagonal);
+                
+                categories.forEach((category, index) => {
+                    const count = counts[category];
+                    const barHeight = (count / maxCount) * height;
+                    const x = margin + (index + 1) * barWidth;
+                    const y = margin + height - barHeight;
+                    
+                    graphCtx.fillStyle = colors[category];
+                    graphCtx.fillRect(x, y, barWidth, barHeight);
+                    
+                    graphCtx.fillStyle = '#e0e0e0';
+                    graphCtx.fillText(labels[category], x + barWidth / 2, graphCanvas.height - 20);
+                });
+            }
+
+            // --- Rendering Logic ---
+            function draw() {
+                const size = Math.min(canvas.width, canvas.height) / GRID_SIZE;
+                ctx.fillStyle = '#0d0d18';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    for (let j = 0; j < GRID_SIZE; j++) {
+                        const magnet = magnets[i][j];
+                        const x = j * size;
+                        const y = i * size;
+                        const normalizedAngle = (magnet.angle % 360 + 360) % 360;
+                        
+                        if (binarizePlot) {
+                           const category = getMagnetCategory(normalizedAngle);
+                           if (category === 'north') {
+                               ctx.fillStyle = '#ef4444';
+                           } else if (category === 'south') {
+                               ctx.fillStyle = '#3b82f6';
+                           } else {
+                               ctx.fillStyle = '#1a1a2e';
+                           }
+                        } else {
+                            const t = Math.abs(Math.cos(toRadians(normalizedAngle)));
+                            const r = Math.round(239 * t + 59 * (1 - t));
+                            const g = Math.round(68 * t + 130 * (1 - t));
+                            const b = Math.round(68 * t + 246 * (1 - t));
+                            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        }
+                        
+                        ctx.fillRect(x, y, size, size);
+                        
+                        if (showBars) {
+                            ctx.save();
+                            ctx.translate(x + size / 2, y + size / 2);
+                            ctx.rotate(toRadians(magnet.angle));
+                            ctx.beginPath();
+                            ctx.moveTo(0, -size / 2);
+                            ctx.lineTo(0, size / 2);
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 1)';
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+                    }
+                }
+            }
+
+            /**
+             * The main animation loop.
+             */
+            function animate() {
+                if (isRunning) {
+                    for (let i = 0; i < SIMULATION_SPEED; i++) {
+                        updateSimulation();
+                    }
+                    analyzeAndDrawGraph();
+                }
+                draw();
+                frameId = requestAnimationFrame(animate);
+            }
+            
+            // --- Event Listeners and Initial Setup ---
+            window.addEventListener('resize', resizeCanvas);
+            
+            function resizeCanvas() {
+                const container = document.getElementById('container');
+                const containerWidth = container.offsetWidth;
+                canvas.width = (containerWidth > 768 ? containerWidth * 0.4 : containerWidth * 0.9);
+                canvas.height = canvas.width;
+                graphCanvas.width = (containerWidth > 768 ? containerWidth * 0.4 : containerWidth * 0.9);
+                graphCanvas.height = graphCanvas.width;
+                draw();
+                analyzeAndDrawGraph();
+            }
+
+            toggleButton.addEventListener('click', () => {
+                isRunning = !isRunning;
+                toggleButton.textContent = isRunning ? "Pause Simulation" : "Resume Simulation";
+            });
+
+            resetButton.addEventListener('click', () => {
+                GRID_SIZE = parseInt(gridSizeSlider.value);
+                initializeGrid();
+                draw();
+                analyzeAndDrawGraph();
+            });
+
+            strengthSlider.addEventListener('input', (e) => {
+                magneticFieldStrength = parseFloat(e.target.value);
+            });
+
+            initialOrientationSlider.addEventListener('input', (e) => {
+                initialOrientationProb = parseFloat(e.target.value);
+            });
+
+            gridSizeSlider.addEventListener('input', (e) => {
+                GRID_SIZE = parseInt(e.target.value);
+                gridSizeValueSpan.textContent = GRID_SIZE;
+                gridSizeValue2Span.textContent = GRID_SIZE;
+                initializeGrid();
+                resizeCanvas();
+            });
+            
+            showBarsCheckbox.addEventListener('change', (e) => {
+                showBars = e.target.checked;
+            });
+            
+            binarizePlotCheckbox.addEventListener('change', (e) => {
+                binarizePlot = e.target.checked;
+                draw();
+                analyzeAndDrawGraph();
+            });
+
+            // Initial setup
+            initializeGrid();
+            resizeCanvas();
+            animate();
+        });
+    </script>
+</body>
+</html>
+

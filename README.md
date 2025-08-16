@@ -6,7 +6,7 @@ This work was inspired after watching [this](https://youtu.be/da3-dHWb4WU?featur
 
 The simulation features two key components: a visual representation of the magnetic field and an analytical graph that tracks the distribution of connected clusters. This allows users to not only create mesmerizing visual art but also to observe how macroscopic patterns emerge from microscopic interactions.
 ## How to Use
-Simply open the [index.html](index.html) file in a modern web browser to run the simulation. No installation or server is required.
+Simply go to [https://willisbillis.github.io/magnetic-percolation-art/](https://willisbillis.github.io/magnetic-percolation-art/) to run the simulation. No installation or server is required.
 ### Controls
  * Magnetic Field Strength: Adjusts the influence each magnet has on its neighbors. Higher values lead to stronger interactions and faster pattern formation.
  * Initial North Orientation Probability: Sets the likelihood of a magnet starting in a northern-facing direction. A value of 0.5 creates a random mix, while 1.0 or 0.0 creates a completely uniform initial state.

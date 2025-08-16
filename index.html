@@ -419,11 +419,6 @@
                 graphCtx.fillStyle = '#e0e0e0';
                 graphCtx.fillText('South', margin + 85, 20);
 
-                graphCtx.fillStyle = '#22c55e';
-                graphCtx.fillRect(margin + 130, 10, 10, 10);
-                graphCtx.fillStyle = '#e0e0e0';
-                graphCtx.fillText('Diagonal', margin + 145, 20);
-
                 function drawLine(data, color) {
                     if (data.length < 2) return;
                     graphCtx.strokeStyle = color;
@@ -442,7 +437,6 @@
 
                 drawLine(graphData.north, '#ef4444');
                 drawLine(graphData.south, '#3b82f6');
-                drawLine(graphData.diagonal, '#22c55e');
             }
             
             function drawBinarizedGraph(counts) {
@@ -466,10 +460,10 @@
                 graphCtx.fillText('Magnet Count', margin + width / 2, graphCanvas.height - 10);
 
                 const barWidth = width / 5;
-                const colors = { north: '#ef4444', south: '#3b82f6', diagonal: '#22c55e' };
-                const labels = { north: 'North', south: 'South', diagonal: 'Diagonal' };
-                const categories = ['north', 'south', 'diagonal'];
-                const maxCount = Math.max(counts.north, counts.south, counts.diagonal);
+                const colors = { north: '#ef4444', south: '#3b82f6' };
+                const labels = { north: 'North', south: 'South' };
+                const categories = ['north', 'south'];
+                const maxCount = Math.max(counts.north, counts.south);
                 
                 categories.forEach((category, index) => {
                     const count = counts[category];

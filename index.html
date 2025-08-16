@@ -201,7 +201,7 @@
             const SIMULATION_SPEED = 1;
             const DAMPING = 0.95;
             const SMOOTHING = 0.05;
-            const JITTER_RANGE = 90;
+            const JITTER_RANGE = 45;
 
             let isRunning = true;
             let magneticFieldStrength = parseFloat(strengthSlider.value);
@@ -243,10 +243,10 @@
                     magnets[i] = [];
                     for (let j = 0; j < GRID_SIZE; j++) {
                         if (Math.random() < initialOrientationProb) {
-                            const angle = 270 + (Math.random() - 0.5) * JITTER_RANGE;
+                            const angle = 90 + (Math.random() - 0.5) * JITTER_RANGE;
                             magnets[i][j] = { angle: angle, angularVelocity: 0 };
                         } else {
-                            const angle = 90 + (Math.random() - 0.5) * JITTER_RANGE;
+                            const angle = 270 + (Math.random() - 0.5) * JITTER_RANGE;
                             magnets[i][j] = { angle: angle, angularVelocity: 0 };
                         }
                     }
